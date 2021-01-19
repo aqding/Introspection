@@ -1,10 +1,10 @@
-# Predicting Masks
+# Predicting Masks with Forecasting
 
 epochs = 40
 batch = 128
 # Steps per epoch: 469
 trainloader = torch.utils.data.DataLoader(mnist_train, batch_size = batch, shuffle = True)
-testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000//epochs, shuffle = True)
+testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000, shuffle = True)
 
 # Unused Model
 
@@ -105,7 +105,7 @@ for item in init_state_dict:
   mask[item] = torch.ones(init_state_dict[item].size())
 simple_model.load_state_dict(init_state_dict)
 
-# Precomputer values, corresponds to the number of steps for 40/80 epochs, respectively
+# Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
 important_steps = [18760, 37520]
 timesteps = []
 for step in important_steps:
@@ -122,11 +122,13 @@ for i in range(len(timesteps)):
 num_zeroed = 0
 counter = 0
 trajectory = {}
+training_iterations = []
+accuracy = []
 inserts = 0
 for i in range (3):
   print("Pruning Step", i+1)
-  testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000//epochs, shuffle = True)
-  iter_test = iter(testloader)
+  # testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000//epochs, shuffle = True)
+  # iter_test = iter(testloader)
   for m in range(epochs):
     trainloader = torch.utils.data.DataLoader(mnist_train, batch_size = batch, shuffle = True)
     iter_train = iter(trainloader)
@@ -137,6 +139,10 @@ for i in range (3):
       output = simple_model(data)
       loss = testcriterion(output, labels)
       loss.backward()
+      for parameter in simple_model.parameters():
+        for item in mask:
+          if(parameter.size() == mask[item].size()):
+            parameter.grad = parameter.grad*mask[item]
       testoptimizer.step()
       counter += 1
       if(counter % 1000 == 0):
@@ -151,13 +157,110 @@ for i in range (3):
           print("Pruning...", k+1)
           acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
           accelerate_dict = vec_to_dict(acceleration, simple_model.state_dict())
-          (mask, num_zeroed) = prune(accelerate_dict, k+1, .2, num_zeroed, mask)
+          (mask, num_zeroed) = prune(accelerate_dict, k+1, .95, num_zeroed, mask)
           temp_state_dict = simple_model.state_dict()
           for item in mask:
             temp_state_dict[item] = mask[item] * temp_state_dict[item]
           simple_model.load_state_dict(temp_state_dict)
+    testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000, shuffle = True)
+    iter_test = iter(testloader)
     test_data, test_labels = iter_test.next()
     test_data = torch.reshape(test_data, (test_data.size()[0], 28**2))
     test_output = simple_model(test_data)
     correct = validate(test_output, test_labels)
-    print("Epoch", m, "acc", correct/250)
+    training_iterations.append(counter)
+    accuracy.append(correct/10000)
+    print("Epoch", m, "acc", correct/10000)
+
+
+# Using same step masks
+simple_model_2 = nn.Sequential(nn.Linear(28**2, 300),
+                             nn.Tanh(),
+                             nn.Linear(300, 100),
+                             nn.Tanh(),
+                             nn.Linear(100, 10),
+                             nn.Softmax(dim=1))
+
+testoptimizer = optim.SGD(simple_model_2.parameters(), .1)
+testcriterion = nn.NLLLoss()
+
+mask = {}
+init_state_dict = simple_model_2.state_dict()
+for item in init_state_dict:
+  # init_state_dict[item] = torch.nn.init.normal_(init_state_dict[item], 0, .01)
+  mask[item] = torch.ones(init_state_dict[item].size())
+simple_model_2.load_state_dict(init_state_dict)
+
+# Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
+important_steps = [18760, 37520]
+
+num_zeroed = 0
+counter = 0
+trajectory_2 = {}
+accuracy_2 = []
+inserts = 0
+for i in range (3):
+  print("Pruning Step", i+1)
+  # testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000//epochs, shuffle = True)
+  # iter_test = iter(testloader)
+  for m in range(epochs):
+    trainloader = torch.utils.data.DataLoader(mnist_train, batch_size = batch, shuffle = True)
+    iter_train = iter(trainloader)
+    for j in range(60000//batch + 1):
+      testoptimizer.zero_grad()
+      data, labels = iter_train.next()
+      data = torch.reshape(data, (data.size()[0], 28**2))
+      output = simple_model_2(data)
+      loss = testcriterion(output, labels)
+      loss.backward()
+      for parameter in simple_model_2.parameters():
+        for item in mask:
+          if(parameter.size() == mask[item].size()):
+            parameter.grad = parameter.grad*mask[item]
+      testoptimizer.step()
+      counter += 1
+      if(counter % 1000 == 0):
+        trajectory_2[inserts] = dict_to_vec(simple_model_2.state_dict())
+        inserts += 1
+      for k in range(len(important_steps)):
+        if(important_steps[k] == counter):
+          print("Pruning...", k+1)
+          this_state_dict = simple_model_2.state_dict()
+          (mask, num_zeroed) = prune(this_state_dict, k+1, .98, num_zeroed, mask)
+          temp_state_dict = simple_model_2.state_dict()
+          for item in mask:
+            temp_state_dict[item] = mask[item] * temp_state_dict[item]
+          simple_model_2.load_state_dict(temp_state_dict)
+    testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000, shuffle = True)
+    iter_test = iter(testloader)
+    test_data, test_labels = iter_test.next()
+    test_data = torch.reshape(test_data, (test_data.size()[0], 28**2))
+    test_output = simple_model_2(test_data)
+    correct = validate(test_output, test_labels)
+    accuracy_2.append(correct/10000)
+    print("Epoch", m, "acc", correct/10000)
+
+
+# Graphing Accuracy
+import matplotlib.pyplot as plt
+
+fig , (ax1, ax2) = plt.subplots(1, 2)
+fig.suptitle("Test Accuracy with Weight Pruning, P = 98%")
+vert = [18760, 37520]
+for item in vert:
+  ax1.plot([item-500, item-500], [-1, 1], "g-", alpha = .4)
+  ax2.plot([item-500, item-500], [-1, 1], "g-", alpha = .4)
+ax1.plot(training_iterations, accuracy, "r-")
+ax1.set_title("Forecasting")
+ax1.set_ylabel("Accuracy")
+ax1.set_xlabel("Iteration")
+ax1.set_xlim(0, 57900)
+ax1.set_ylim(.7, 1)
+ax2.plot(training_iterations, accuracy_2, "r-")
+ax2.set_title("No Forecasting")
+ax2.set_ylabel("Accuracy")
+ax2.set_xlabel("Iteration")
+ax2.set_xlim(0, 57900)
+ax2.set_ylim(.7, 1)
+ax1.grid(True)
+ax2.grid(True)
