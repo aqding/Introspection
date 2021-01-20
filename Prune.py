@@ -8,6 +8,7 @@ import time
 epochs = 2
 
 
+
 mnist_train = datasets.MNIST(root = "./data", train = True, download = True, transform = torchvision.transforms.ToTensor())
 mnist_test = datasets.MNIST(root = "./data", train = False, download = True, transform = torchvision.transforms.ToTensor())
 trainloader = torch.utils.data.DataLoader(mnist_train, batch_size = 50, shuffle = True)
@@ -35,7 +36,7 @@ def vectorize(matrix):
     temp = torch.cat((temp, torch.reshape(item, (-1,))))
   return temp
 
-
+print("Starting MNIST Training")
 weight_library = torch.zeros((1200*epochs + 1, 551818))
 optimizer = optim.Adam(model.parameters(), .0001)
 criterion = nn.NLLLoss()
@@ -83,7 +84,7 @@ print(weight_library.size())
 
 #Generating Data
 import random
-
+print("Generating Data")
 samples = 3
 weights = weight_library #torch.load("weights")
 data = torch.zeros((weights.size()[1]*samples, 5))
@@ -96,11 +97,11 @@ for datapoint in range(weights.size()[1]):
                                   weights[int(timestep*4/10)][datapoint],
                                   weights[0][datapoint],
                                   weights[2*timestep][datapoint]])
-print("finished", data.size())
+print("Finished Generating Data", data.size())
 info = data*1000
 
 # Training I
-
+print("Training Introspection")
 dataset = torch.load("info")
 I_data = dataset
 I_data = I_data[torch.randperm(I_data.size()[0])]
