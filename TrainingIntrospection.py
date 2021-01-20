@@ -128,3 +128,5 @@ for step in range(data.size()[0]//20):
 # torch.save(I_model.state_dict(), "I")
 print("Finished! Running Loss:", running_loss/1000)
 
+torch.save(I_model, "I_model")
+
