@@ -99,7 +99,6 @@ for datapoint in range(weights.size()[1]):
 print("finished", data.size())
 info = data*1000
 
-dataset = torch.load("info")
 I_data = dataset
 I_data = I_data[torch.randperm(I_data.size()[0])]
 
