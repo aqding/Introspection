@@ -1,3 +1,8 @@
+import torch
+import torchvision
+import torchvision.datasets as datasets
+from torch import nn, optim
+
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
 
