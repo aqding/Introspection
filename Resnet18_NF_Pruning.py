@@ -102,20 +102,6 @@ total_model_size = torch.reshape(dict_to_vec(simple_model.state_dict()), (-1, ))
 print(total_model_size, total_size)
 # Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
 important_steps = [120*391, 240*391]
-timesteps = []
-for step in important_steps:
-  timesteps.append(step)
-  timesteps.append(step*7//10)
-  timesteps.append(step*4//10)
-  timesteps.append(0)
-
-weight_holder = torch.zeros((len(timesteps), total_size))
-for i in range(len(timesteps)):
-  if(i+1 % 4 == 0):
-    new_dict = {}
-    for item in mask:
-      new_dict[item] = init_state_dict[item]
-    weight_holder[i] = dict_to_vec(new_dict)
 
 num_zeroed = 0
 counter = 0
@@ -153,10 +139,12 @@ for i in range (3):
           weight_holder[k] = dict_to_vec(new_dict)
       for k in range(len(important_steps)):
         if(important_steps[k] == counter):
-	        print("Pruning...", k+1)
-          acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
-          accelerate_dict = vec_to_dict(acceleration, mask)
-          (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
+	      print("Pruning...", k+1)
+	      current = simple_model.state_dict()
+	      current_convs = {}
+	      for item in mask:
+	      	current_convs[item] = current[item]
+          (mask, num_zeroed) = prune(current_convs, k+1, .9, num_zeroed, mask)
           temp_state_dict = simple_model.state_dict()
           mask_as_list = []
           for item in mask:
@@ -175,6 +163,15 @@ for i in range (3):
     accuracy.append(correct/10000)
     print("Epoch", m, "acc", correct/10000)
 
-torch.save(accuracy, "../Allen_UROP/data/resnet18_f_prune_accuracy.txt")
+torch.save(accuracy, "../Allen_UROP/data/resnet18_nf_prune_accuracy.txt")
 torch.save(training_iterations, "../Allen_UROP/data/resnet18_training_iteration.txt")
-torch.save(simple_model.state_dict(), "../Allen_UROP/data/resnet18_f_prune_model.txt")
+torch.save(simple_model.state_dict(), "../Allen_UROP/data/resnet18_nf_prune_model.txt")
+
+
+
+
+
+
+
+
+
