@@ -99,8 +99,7 @@ for datapoint in range(weights.size()[1]):
 print("finished", data.size())
 info = data*1000
 
-dataset = torch.load("info")
-I_data = dataset
+I_data = info
 I_data = I_data[torch.randperm(I_data.size()[0])]
 
 I_model = nn.Sequential(nn.Linear(4, 40),
@@ -127,4 +126,6 @@ for step in range(data.size()[0]//20):
 # print(I_model(I_data[:1, :4]))
 # torch.save(I_model.state_dict(), "I")
 print("Finished! Running Loss:", running_loss/1000)
+
+torch.save(I_model, "../Allen_UROP/data/introspection.txt")
 
