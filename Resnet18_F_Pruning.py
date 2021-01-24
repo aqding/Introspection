@@ -10,8 +10,8 @@ cuda = torch.device("cuda:0")
 epochs = 120
 batch = 128
 # Steps per epoch (CIFAR): 391
-cifar10_train = datasets.CIFAR10(root = "./data", train = True, download = True, transform = torchvision.transforms.ToTensor())
-cifar10_test = datasets.CIFAR10(root = "./data", train=True, download = True, transform = torchvision.transforms.ToTensor())
+cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = torchvision.transforms.ToTensor())
+cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=True, download = True, transform = torchvision.transforms.ToTensor())
 trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
 testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
 
@@ -156,7 +156,7 @@ for i in range (3):
             print("Pruning...", k+1)
             acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
             accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, .95, num_zeroed, mask)
+            (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:

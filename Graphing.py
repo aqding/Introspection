@@ -1,8 +1,8 @@
 # Graphing Data
-
-accelerated = torch.load("../Allen_UROP/data/resnet18_f_prune_accuracy.txt")
-normal = torch.load("../Allen_UROP/data/resnet18_nf_prune_accuracy.txt")
-iterations = torch.load("../Allen_UROP/data/resnet18_training_iteration.txt")
+import torch
+accuracy = torch.load("../Allen_UROP/data/resnet18_f_prune_accuracy.txt")
+accuracy_2 = torch.load("../Allen_UROP/data/resnet18_nf_prune_accuracy.txt")
+training_iterations = torch.load("../Allen_UROP/data/resnet18_training_iteration.txt")
 
 import matplotlib.pyplot as plt
 
@@ -26,3 +26,4 @@ ax2.set_xlim(0, 141000)
 ax2.set_ylim(0, 1)
 ax1.grid(True)
 ax2.grid(True)
+plt.savefig("./Resnet18_Results")
