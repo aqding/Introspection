@@ -10,8 +10,8 @@ cuda = torch.device("cuda:0")
 epochs = 120
 batch = 128
 # Steps per epoch (CIFAR): 391
-cifar10_train = datasets.CIFAR10(root = "./data", train = True, download = True, transform = torchvision.transforms.ToTensor())
-cifar10_test = datasets.CIFAR10(root = "./data", train=True, download = True, transform = torchvision.transforms.ToTensor())
+cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = torchvision.transforms.ToTensor())
+cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=True, download = True, transform = torchvision.transforms.ToTensor())
 trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
 testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
 

@@ -9,8 +9,8 @@ epochs = 2
 
 
 
-mnist_train = datasets.MNIST(root = "./data", train = True, download = True, transform = torchvision.transforms.ToTensor())
-mnist_test = datasets.MNIST(root = "./data", train = False, download = True, transform = torchvision.transforms.ToTensor())
+mnist_train = datasets.MNIST(root = "../Allen_UROP/datasets", train = True, download = True, transform = torchvision.transforms.ToTensor())
+mnist_test = datasets.MNIST(root = "../Allen_UROP/datasets", train = False, download = True, transform = torchvision.transforms.ToTensor())
 trainloader = torch.utils.data.DataLoader(mnist_train, batch_size = 50, shuffle = True)
 testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000//epochs, shuffle = True)
 test_iter = iter(testloader)
