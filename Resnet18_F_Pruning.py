@@ -254,7 +254,7 @@ for i in range (3):
             print("Pruning...", k+1)
             acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
             accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
+            (mask, num_zeroed) = prune(accelerate_dict, k+1, .94, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:
@@ -272,7 +272,15 @@ for i in range (3):
     training_iterations.append(counter)
     accuracy.append(correct/10000)
     print("Epoch", m, "acc", correct/10000)
-
+zero = 0
+for item in mask:
+    hehe = torch.reshape(simple_model.state_dict()[item], (-1,)).to(cuda)
+    for i in range(hehe.size()[0]):
+        if(hehe[i] == 0):
+            zero += 1
+            if(zero % 100000 == 0):
+                print(zero)
+print(zero)
 
 
         
