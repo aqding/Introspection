@@ -2,22 +2,42 @@ import torch
 import torchvision
 import torchvision.datasets as datasets
 from torch import nn, optim
-
+import torchvision.transforms as transforms
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
 cuda = torch.device("cuda:0")
 
+
+normalize = transforms.Normalize(
+    mean=[0.4914, 0.4822, 0.4465],
+    std=[0.2023, 0.1994, 0.2010],
+)
+
+
+# define transforms
+valid_transform = transforms.Compose([
+        transforms.ToTensor(),
+        normalize,
+    ])
+    
+train_transform = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    normalize,
+])
+
 epochs = 120
 batch = 128
 # Steps per epoch (CIFAR): 391
-cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = torchvision.transforms.ToTensor())
-cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=False, download = True, transform = torchvision.transforms.ToTensor())
+cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = train_transform)
+cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=False, download = True, transform = valid_transform)
 trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
 testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
 
 simple_model = torchvision.models.resnet18()
 simple_model.to(cuda)
-testoptimizer = optim.SGD(simple_model.parameters(), .1, weight_decay=.0001)
+testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9, weight_decay=.0001)
 testcriterion = nn.CrossEntropyLoss()
 
 def dict_to_vec(model_skel):
@@ -144,6 +164,10 @@ for i in range (3):
               parameter.grad = parameter.grad*mask_as_list[mask_list_counter]
               mask_list_counter += 1
       testoptimizer.step()
+      state_dict = simple_model.state_dict()
+      for item in mask:
+        state_dict[item] = state_dict[item].to(cuda)*mask[item]
+      simple_model.load_state_dict(state_dict)
       counter += 1
       for k in range(len(timesteps)):
         if(timesteps[k] == counter):
