@@ -27,7 +27,7 @@ train_transform = transforms.Compose([
     normalize,
 ])
 
-epochs = 120
+epochs = 80
 batch = 128
 # Steps per epoch (CIFAR): 391
 cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = train_transform)
@@ -37,7 +37,7 @@ testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuff
 
 simple_model = torchvision.models.resnet18()
 simple_model.to(cuda)
-testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9, weight_decay=.0001)
+testoptimizer = optim.SGD(simple_model.parameters(), .1, weight_decay=.0001)
 testcriterion = nn.CrossEntropyLoss()
 
 def dict_to_vec(model_skel):
@@ -103,7 +103,6 @@ def prune(weights, iteration, p, zeros, mask):
       conv_layers[item][conv_layers[item] > threshold] = 1
       conv_layers[item][conv_layers[item] < -threshold] = 1
       conv_layers[item][conv_layers[item] != 1] = 0
-      print(conv_layers[item])
   zeros += pruned
   print("pruning finished", pruned)
   return (conv_layers,zeros)
@@ -122,7 +121,7 @@ total_size = torch.reshape(dict_to_vec(mask), (-1, )).size()[0]
 total_model_size = torch.reshape(dict_to_vec(simple_model.state_dict()), (-1, )).size()[0]
 print(total_model_size, total_size)
 # Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
-important_steps = [120*391, 240*391]
+important_steps = [80*391, 160*391]
 timesteps = []
 for step in important_steps:
   timesteps.append(step)
@@ -164,10 +163,10 @@ for i in range (3):
               parameter.grad = parameter.grad*mask_as_list[mask_list_counter]
               mask_list_counter += 1
       testoptimizer.step()
-      state_dict = simple_model.state_dict()
-      for item in mask:
-        state_dict[item] = state_dict[item].to(cuda)*mask[item]
-      simple_model.load_state_dict(state_dict)
+      #state_dict = simple_model.state_dict()
+      #for item in mask:
+      #  state_dict[item] = state_dict[item].to(cuda)*mask[item]
+      #simple_model.load_state_dict(state_dict)
       counter += 1
       for k in range(len(timesteps)):
         if(timesteps[k] == counter):
@@ -181,7 +180,7 @@ for i in range (3):
             print("Pruning...", k+1)
             acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
             accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
+            (mask, num_zeroed) = prune(accelerate_dict, k+1, .95, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:

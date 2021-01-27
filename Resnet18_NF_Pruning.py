@@ -27,9 +27,9 @@ train_transform = transforms.Compose([
 
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
-cuda = torch.device("cuda:0")
+cuda = torch.device("cuda:1")
 
-epochs = 120
+epochs = 80
 batch = 128
 # Steps per epoch (CIFAR): 391
 cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = train_transform)
@@ -39,7 +39,7 @@ testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuff
 
 simple_model = torchvision.models.resnet18()
 simple_model.to(cuda)
-testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9, weight_decay=.0001)
+testoptimizer = optim.SGD(simple_model.parameters(), .1, weight_decay=.0001)
 testcriterion = nn.CrossEntropyLoss()
 
 def dict_to_vec(model_skel):
@@ -123,7 +123,7 @@ total_size = torch.reshape(dict_to_vec(mask), (-1, )).size()[0]
 total_model_size = torch.reshape(dict_to_vec(simple_model.state_dict()), (-1, )).size()[0]
 print(total_model_size, total_size)
 # Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
-important_steps = [120*391, 240*391]
+important_steps = [80*391, 160*391]
 
 num_zeroed = 0
 counter = 0
@@ -151,10 +151,10 @@ for i in range (3):
               parameter.grad = parameter.grad*mask_as_list[mask_list_counter]
               mask_list_counter += 1
       testoptimizer.step()
-      state_dict = simple_model.state_dict()
-      for item in mask:
-        state_dict[item] = state_dict[item].to(cuda)*mask[item]
-      simple_model.load_state_dict(state_dict)
+      #state_dict = simple_model.state_dict()
+      #for item in mask:
+      #  state_dict[item] = state_dict[item].to(cuda)*mask[item]
+      #simple_model.load_state_dict(state_dict)
       counter += 1
       for k in range(len(important_steps)):
         if(important_steps[k] == counter):
@@ -163,7 +163,7 @@ for i in range (3):
             current_convs = {}
             for item in mask:
                 current_convs[item] = current[item]
-            (mask, num_zeroed) = prune(current_convs, k+1, .9, num_zeroed, mask)
+            (mask, num_zeroed) = prune(current_convs, k+1, .95, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:
@@ -181,6 +181,7 @@ for i in range (3):
     training_iterations.append(counter)
     accuracy.append(correct/10000)
     print("Epoch", m, "acc", correct/10000)
+
 
 torch.save(accuracy, "../Allen_UROP/data/resnet18_nf_prune_accuracy.txt")
 torch.save(training_iterations, "../Allen_UROP/data/resnet18_training_iteration.txt")
