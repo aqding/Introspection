@@ -39,7 +39,7 @@ testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuff
 
 simple_model = torchvision.models.resnet18()
 simple_model.to(cuda)
-testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9 weight_decay=.0001)
+testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9, weight_decay=.0001)
 testcriterion = nn.CrossEntropyLoss()
 
 def dict_to_vec(model_skel):
@@ -163,7 +163,7 @@ for i in range (3):
             current_convs = {}
             for item in mask:
                 current_convs[item] = current[item]
-            (mask, num_zeroed) = prune(current_convs, k+1, .94, num_zeroed, mask)
+            (mask, num_zeroed) = prune(current_convs, k+1, .9, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:
