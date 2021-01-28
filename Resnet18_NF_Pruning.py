@@ -163,7 +163,7 @@ for i in range (3):
             current_convs = {}
             for item in mask:
                 current_convs[item] = current[item]
-            (mask, num_zeroed) = prune(current_convs, k+1, .9280, num_zeroed, mask)
+            (mask, num_zeroed) = prune(current_convs, k+1, .9929, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:
