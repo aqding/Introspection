@@ -180,7 +180,7 @@ for i in range (3):
             print("Pruning...", k+1)
             acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
             accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, .95, num_zeroed, mask)
+            (mask, num_zeroed) = prune(accelerate_dict, k+1, .9775, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:
