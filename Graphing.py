@@ -7,7 +7,7 @@ training_iterations = torch.load("../Allen_UROP/data/resnet18_training_iteration
 import matplotlib.pyplot as plt
 
 fig , (ax1, ax2) = plt.subplots(1, 2)
-fig.suptitle("Test Accuracy with Weight Pruning, P = 99.9%")
+fig.suptitle("Test Accuracy with Weight Pruning, P = 99%")
 vert = [80*391, 160*391]
 for item in vert:
   ax1.plot([item-391, item-391], [-1, 1], "g-", alpha = .4)
@@ -25,4 +25,4 @@ ax2.set_xlim(0, 94000)
 ax2.set_ylim(0, 1)
 ax1.grid(True)
 ax2.grid(True)
-plt.savefig("./Resnet18_Results95")
+plt.savefig("./Resnet18_Results99")
