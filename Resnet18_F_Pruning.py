@@ -7,7 +7,7 @@ from Resnet import ResNet18
 
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
-cuda = torch.device("cuda:0")
+cuda = torch.device("cuda:2")
 
 
 normalize = transforms.Normalize(
@@ -29,14 +29,17 @@ train_transform = transforms.Compose([
     normalize,
 ])
 
-epochs = 120
+epochs = 80
 batch = 128
 # Steps per epoch (CIFAR): 391
-a
+cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=True, download = True, transform = train_transform)
+cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=False, download = True, transform = valid_transform)
+trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
+testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 100, shuffle = True)
 
 simple_model = ResNet18()
 simple_model.to(cuda)
-testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9, weight_decay=.0001)
+testoptimizer = optim.SGD(simple_model.parameters(), .1, weight_decay=.0001)
 testcriterion = nn.CrossEntropyLoss()
 
 def dict_to_vec(model_skel):
@@ -102,7 +105,6 @@ def prune(weights, iteration, p, zeros, mask):
       conv_layers[item][conv_layers[item] > threshold] = 1
       conv_layers[item][conv_layers[item] < -threshold] = 1
       conv_layers[item][conv_layers[item] != 1] = 0
-      print(conv_layers[item])
   zeros += pruned
   print("pruning finished", pruned)
   return (conv_layers,zeros)
@@ -121,7 +123,7 @@ total_size = torch.reshape(dict_to_vec(mask), (-1, )).size()[0]
 total_model_size = torch.reshape(dict_to_vec(simple_model.state_dict()), (-1, )).size()[0]
 print(total_model_size, total_size)
 # Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
-important_steps = [120*391, 240*391]
+important_steps = [80*391, 160*391]
 timesteps = []
 for step in important_steps:
   timesteps.append(step)
@@ -146,11 +148,8 @@ inserts = 0
 for i in range (3):
   print("Pruning Step", i+1)
   for m in range(epochs):
-    trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size = batch, shuffle = True)
-    iter_train = iter(trainloader)
-    for j in range(50000//batch + 1):
+    for batch_num, (data, labels) in enumerate(trainloader):
       testoptimizer.zero_grad()
-      data, labels = iter_train.next()
       data = data.to(cuda)
       labels = labels.to(cuda)
       output = simple_model(data)
@@ -168,13 +167,13 @@ for i in range (3):
       #   state_dict[item] = state_dict[item].to(cuda)*mask[item]
       # simple_model.load_state_dict(state_dict)
       counter += 1
-      for k in range(len(timesteps)):
-        if(timesteps[k] == counter):
-          x = simple_model.state_dict()
-          new_dict = {}
-          for item in mask:
-            new_dict[item] = x[item]
-          weight_holder[k] = dict_to_vec(new_dict)
+      # for k in range(len(timesteps)):
+      #   if(timesteps[k] == counter):
+      #     x = simple_model.state_dict()
+      #     new_dict = {}
+      #     for item in mask:
+      #       new_dict[item] = x[item]
+      #     weight_holder[k] = dict_to_vec(new_dict)
       # for k in range(len(important_steps)):
       #   if(important_steps[k] == counter):
       #       print("Pruning...", k+1)
@@ -188,17 +187,15 @@ for i in range (3):
       #           temp_state_dict[item] = temp_state_dict[item].to(cuda)
       #           mask_as_list.append(mask[item])
       #       simple_model.load_state_dict(temp_state_dict)
-    testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
-    iter_test = iter(testloader)
-    test_data, test_labels = iter_test.next()
-    test_data = test_data.to(cuda)
-    test_labels = test_labels.to(cuda)
-    test_output = simple_model(test_data)
-    correct = validate(test_output, test_labels)
+    correct = 0
+    for batch_num, (test_data, test_labels) in enumerage(testloader):
+      test_data = test_data.to(cuda)
+      test_labels = test_labels.to(cuda)
+      test_output = simple_model(test_data)
+      correct += validate(test_output, test_labels)
     training_iterations.append(counter)
     accuracy.append(correct/10000)
     print("Epoch", m, "acc", correct/10000)
-
 
 
         
