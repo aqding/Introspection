@@ -3,6 +3,8 @@ import torchvision
 import torchvision.datasets as datasets
 from torch import nn, optim
 import torchvision.transforms as transforms
+from Resnet import ResNet18
+
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
 cuda = torch.device("cuda:0")
@@ -30,12 +32,9 @@ train_transform = transforms.Compose([
 epochs = 120
 batch = 128
 # Steps per epoch (CIFAR): 391
-cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = train_transform)
-cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=False, download = True, transform = valid_transform)
-trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
-testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
+a
 
-simple_model = torchvision.models.resnet18()
+simple_model = ResNet18()
 simple_model.to(cuda)
 testoptimizer = optim.SGD(simple_model.parameters(), .1, momentum = .9, weight_decay=.0001)
 testcriterion = nn.CrossEntropyLoss()
@@ -157,17 +156,17 @@ for i in range (3):
       output = simple_model(data)
       loss = testcriterion(output, labels)
       loss.backward()
-      mask_list_counter = 0
-      for parameter in simple_model.parameters():
-        if(mask_list_counter < len(mask_as_list)):
-          if(parameter.size() == mask_as_list[mask_list_counter].size()):
-              parameter.grad = parameter.grad*mask_as_list[mask_list_counter]
-              mask_list_counter += 1
+      # mask_list_counter = 0
+      # for parameter in simple_model.parameters():
+      #   if(mask_list_counter < len(mask_as_list)):
+      #     if(parameter.size() == mask_as_list[mask_list_counter].size()):
+      #         parameter.grad = parameter.grad*mask_as_list[mask_list_counter]
+      #         mask_list_counter += 1
       testoptimizer.step()
-      state_dict = simple_model.state_dict()
-      for item in mask:
-        state_dict[item] = state_dict[item].to(cuda)*mask[item]
-      simple_model.load_state_dict(state_dict)
+      # state_dict = simple_model.state_dict()
+      # for item in mask:
+      #   state_dict[item] = state_dict[item].to(cuda)*mask[item]
+      # simple_model.load_state_dict(state_dict)
       counter += 1
       for k in range(len(timesteps)):
         if(timesteps[k] == counter):
@@ -176,19 +175,19 @@ for i in range (3):
           for item in mask:
             new_dict[item] = x[item]
           weight_holder[k] = dict_to_vec(new_dict)
-      for k in range(len(important_steps)):
-        if(important_steps[k] == counter):
-            print("Pruning...", k+1)
-            acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
-            accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
-            temp_state_dict = simple_model.state_dict()
-            mask_as_list = []
-            for item in mask:
-                temp_state_dict[item] = mask[item] * temp_state_dict[item].to(cuda)
-                temp_state_dict[item] = temp_state_dict[item].to(cuda)
-                mask_as_list.append(mask[item])
-            simple_model.load_state_dict(temp_state_dict)
+      # for k in range(len(important_steps)):
+      #   if(important_steps[k] == counter):
+      #       print("Pruning...", k+1)
+      #       acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
+      #       accelerate_dict = vec_to_dict(acceleration, mask)
+      #       (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
+      #       temp_state_dict = simple_model.state_dict()
+      #       mask_as_list = []
+      #       for item in mask:
+      #           temp_state_dict[item] = mask[item] * temp_state_dict[item].to(cuda)
+      #           temp_state_dict[item] = temp_state_dict[item].to(cuda)
+      #           mask_as_list.append(mask[item])
+      #       simple_model.load_state_dict(temp_state_dict)
     testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
     iter_test = iter(testloader)
     test_data, test_labels = iter_test.next()
