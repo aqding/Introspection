@@ -27,7 +27,7 @@ train_transform = transforms.Compose([
 
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
-cuda = torch.device("cuda:1")
+cuda = torch.device("cuda:5")
 
 epochs = 80
 batch = 128
@@ -156,21 +156,21 @@ for i in range (3):
       #  state_dict[item] = state_dict[item].to(cuda)*mask[item]
       #simple_model.load_state_dict(state_dict)
       counter += 1
-      for k in range(len(important_steps)):
-        if(important_steps[k] == counter):
-            print("Pruning...", k+1)
-            current = simple_model.state_dict()
-            current_convs = {}
-            for item in mask:
-                current_convs[item] = current[item]
-            (mask, num_zeroed) = prune(current_convs, k+1, .9929, num_zeroed, mask)
-            temp_state_dict = simple_model.state_dict()
-            mask_as_list = []
-            for item in mask:
-                temp_state_dict[item] = mask[item] * temp_state_dict[item].to(cuda)
-                temp_state_dict[item] = temp_state_dict[item].to(cuda)
-                mask_as_list.append(mask[item])
-            simple_model.load_state_dict(temp_state_dict)
+      #for k in range(len(important_steps)):
+        #if(important_steps[k] == counter):
+            #print("Pruning...", k+1)
+            #current = simple_model.state_dict()
+            #current_convs = {}
+            #for item in mask:
+                #current_convs[item] = current[item]
+            #(mask, num_zeroed) = prune(current_convs, k+1, .8349, num_zeroed, mask)
+            #temp_state_dict = simple_model.state_dict()
+            #mask_as_list = []
+            #for item in mask:
+                #temp_state_dict[item] = mask[item] * temp_state_dict[item].to(cuda)
+                #temp_state_dict[item] = temp_state_dict[item].to(cuda)
+                #mask_as_list.append(mask[item])
+            #simple_model.load_state_dict(temp_state_dict)
     testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
     iter_test = iter(testloader)
     test_data, test_labels = iter_test.next()

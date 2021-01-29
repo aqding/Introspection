@@ -5,7 +5,7 @@ from torch import nn, optim
 import torchvision.transforms as transforms
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
-cuda = torch.device("cuda:0")
+cuda = torch.device("cuda:2")
 
 
 normalize = transforms.Normalize(
@@ -180,7 +180,9 @@ for i in range (3):
             print("Pruning...", k+1)
             acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
             accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, .9929, num_zeroed, mask)
+            for item in accelerate_dict:
+                accelerate_dict[item] = accelerate_dict[item].to(cuda)*mask[item]
+            (mask, num_zeroed) = prune(accelerate_dict, k+1, .8349, num_zeroed, mask)
             temp_state_dict = simple_model.state_dict()
             mask_as_list = []
             for item in mask:
@@ -198,7 +200,17 @@ for i in range (3):
     training_iterations.append(counter)
     accuracy.append(correct/10000)
     print("Epoch", m, "acc", correct/10000)
-
+thing = 0
+print(num_zeroed)
+idk = simple_model.state_dict()
+for item in mask:
+    hehe = torch.reshape(idk[item], (-1,))
+    for i in range(hehe.size()[0]):
+        if(hehe[i] == 0):
+            thing += 1
+            if(thing % 1000000 == 0):
+                print(thing)
+print(thing)
 
 
         
