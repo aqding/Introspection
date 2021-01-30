@@ -28,7 +28,7 @@ train_transform = transforms.Compose([
 
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
-cuda = torch.device("cuda:6")
+cuda = torch.device("cuda:5")
 
 epochs = 160
 batch = 128
@@ -36,7 +36,7 @@ batch = 128
 cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = train_transform)
 cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=False, download = True, transform = valid_transform)
 trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
-testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
+testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 100, shuffle = True)
 
 simple_model = ResNet18()
 simple_model.to(cuda)
@@ -150,13 +150,6 @@ for i in range (3):
       loss.backward()
       testoptimizer.step()
       counter += 1
-      for k in range(len(timesteps)):
-        if(timesteps[k] == counter):
-          x = simple_model.state_dict()
-          new_dict = {}
-          for item in mask:
-            new_dict[item] = x[item].clone().detach()
-          weight_holder[k] = dict_to_vec(new_dict)
     correct = 0
     for name, param in simple_model.named_parameters():
         if(name in mask):
@@ -175,15 +168,7 @@ for i in range (3):
       if(important_steps[k] == counter):
           print("Pruning...", k+1)
           weight_dict = {item: weight.clone().cpu().detach() for item, weight in simple_model.state_dict().items() if item in prunable_layers} 
-          (mask, num_zeroed) = prune(weight_dict, k+1, .6971, num_zeroed, mask)
-    temp_dict = {item: weight.clone().cpu().detach() for item, weight in simple_model.state_dict().items() if item in prunable_layers} 
-    zeroed = 0
-    mask_zeroed = 0
-    for item in mask:
-      temp_dict[item][temp_dict[item] != 0] = 1
-      zeroed += int(torch.sum(temp_dict[item]))
-      mask_zeroed += int(torch.sum(mask[item]))
-    print(total_size-zeroed, total_size-mask_zeroed)
+          (mask, num_zeroed) = prune(weight_dict, k+1, .86115, num_zeroed, mask)
   print("Max Accuracy:",max_accuracy)
 
 torch.save(accuracy, "../Allen_UROP/data/resnet18_nf_prune_accuracy.txt")
