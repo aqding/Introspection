@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 fig , (ax1, ax2) = plt.subplots(1, 2)
 fig.suptitle("Test Accuracy with Weight Pruning, P = 99%")
-vert = [160*391, 320*391]
+vert = [40*391, 80*391]
 for item in vert:
   ax1.plot([item, item], [-1, 1], "g-", alpha = .4)
   ax2.plot([item, item], [-1, 1], "g-", alpha = .4)
