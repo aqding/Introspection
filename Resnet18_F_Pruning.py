@@ -29,7 +29,7 @@ train_transform = transforms.Compose([
     normalize,
 ])
 
-epochs = 160
+epochs = 40
 batch = 128
 # Steps per epoch (CIFAR): 391
 cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=True, download = True, transform = train_transform)
@@ -100,7 +100,7 @@ total_model_size = torch.reshape(dict_to_vec(simple_model.state_dict()), (-1, ))
 print(total_model_size, total_size)
 
 # Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
-important_steps = [160*391, 320*391]
+important_steps = [40*391, 80*391]
 timesteps = []
 for step in important_steps:
   timesteps.append(step)
