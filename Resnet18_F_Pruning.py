@@ -7,7 +7,7 @@ from Resnet import ResNet18
 
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
 
-cuda = torch.device("cuda:2")
+cuda = torch.device("cuda:7")
 
 
 normalize = transforms.Normalize(
@@ -71,7 +71,7 @@ def prune(weights, iteration, p, total_pruned, mask):
   prunable_weights = int(torch.sum(flat_mask))
   pruned = int(prunable_weights*(p**(1/iteration)))
   listed_weights = torch.cat([item[mask[name] == 1] for name, item in weights.items()])
-  threshold = torch.sort(torch.abs(listed_weights))[pruned]
+  threshold = torch.sort(torch.abs(listed_weights))[0][pruned]
   conv_layers = {}
   for item in mask:
     conv_layers[item] = weights[item]
@@ -82,6 +82,7 @@ def prune(weights, iteration, p, total_pruned, mask):
   for item in conv_layers:
       conv_layers[item][torch.abs(conv_layers[item]) > threshold] = 1
       conv_layers[item][conv_layers[item] != 1] = 0
+  
   total_pruned += pruned
   print("pruning finished", pruned, "weights pruned for a total of", total_pruned, "weights")
   return (conv_layers,total_pruned)
@@ -100,7 +101,7 @@ total_model_size = torch.reshape(dict_to_vec(simple_model.state_dict()), (-1, ))
 print(total_model_size, total_size)
 
 # Precomputed values, corresponds to the number of steps for 40/80 epochs, respectively
-important_steps = [80*391, 160*391]
+important_steps = [1*391, 2*391]
 timesteps = []
 for step in important_steps:
   timesteps.append(step)
@@ -131,9 +132,8 @@ for i in range (3):
       labels = labels.to(cuda)
       for name, param in simple_model.named_parameters():
         if(name in mask):
-          print(name)
           param.data *= mask[name]
-      # to do: zero weights prior to forward pass using LTH method
+      
       output = simple_model(data)
       loss = testcriterion(output, labels)
       loss.backward()
@@ -157,6 +157,9 @@ for i in range (3):
       #       new_dict[item] = x[item]
       #     weight_holder[k] = dict_to_vec(new_dict)
     correct = 0
+    for name, param in simple_model.named_parameters():
+        if(name in mask):
+            param.data *= mask[name]
     for batch_num, (test_data, test_labels) in enumerate(testloader):
       test_data = test_data.to(cuda)
       test_labels = test_labels.to(cuda)
@@ -168,17 +171,22 @@ for i in range (3):
     for k in range(len(important_steps)):
       if(important_steps[k] == counter):
           print("Pruning...", k+1)
-          acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
-          accelerate_dict = vec_to_dict(acceleration, mask)
+          #acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
+          accelerate_dict = {}
+          for item in mask:
+              accelerate_dict[item] = simple_model.state_dict()[item]
+          #accelerate_dict = vec_to_dict(acceleration, mask)
           for item in accelerate_dict:
             accelerate_dict[item] = accelerate_dict[item].to(cuda)*mask[item]
-          (mask, num_zeroed) = prune(accelerate_dict, k+1, .9, num_zeroed, mask)
-    temp_dict = simple_model.state_dict()
+          (mask, num_zeroed) = prune(accelerate_dict, k+1, .5, num_zeroed, mask)
+    temp_dict = {item: weight.clone().cpu().detach() for item, weight in simple_model.state_dict().items() if item in prunable_layers} 
     zeroed = 0
-    for item in temp_dict:
+    mask_zeroed = 0
+    for item in mask:
       temp_dict[item][temp_dict[item] != 0] = 1
       zeroed += int(torch.sum(temp_dict[item]))
-    print(zeroed)
+      mask_zeroed += int(torch.sum(mask[item]))
+    print(total_size-zeroed, total_size-mask_zeroed)
 
           # temp_state_dict = simple_model.state_dict()
           # mask_as_list = []
