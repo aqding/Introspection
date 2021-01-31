@@ -69,7 +69,7 @@ def prune(weights, iteration, p, total_pruned, mask):
   # pruned = int((total_size-zeros)*(p**(1/iteration)))
   flat_mask = dict_to_vec(mask)
   prunable_weights = int(torch.sum(flat_mask))
-  pruned = int(prunable_weights*(p**(1/iteration)))
+  pruned = int(prunable_weights*(p**(iteration)))
   listed_weights = torch.cat([item[mask[name] == 1] for name, item in weights.items()])
   threshold = torch.sort(torch.abs(listed_weights))[0][pruned]
   conv_layers = {}
@@ -170,7 +170,7 @@ for i in range (3):
           accelerate_dict = vec_to_dict(acceleration, mask)
           # for item in accelerate_dict:
           #   accelerate_dict[item] = accelerate_dict[item].to(cuda)*mask[item]
-          (mask, num_zeroed) = prune(accelerate_dict, k+1, .86115, num_zeroed, mask)
+          (mask, num_zeroed) = prune(accelerate_dict, k+1, .9493, num_zeroed, mask)
   print("Max Accuracy:",max_accuracy)
 
         

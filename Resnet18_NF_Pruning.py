@@ -96,7 +96,7 @@ def prune(weights, iteration, p, total_pruned, mask):
   # pruned = int((total_size-zeros)*(p**(1/iteration)))
   flat_mask = dict_to_vec(mask)
   prunable_weights = int(torch.sum(flat_mask))
-  pruned = int(prunable_weights*(p**(1/iteration)))
+  pruned = int(prunable_weights*(p**(iteration)))
   listed_weights = torch.cat([item[mask[name] == 1] for name, item in weights.items()])
   threshold = torch.sort(torch.abs(listed_weights))[0][pruned]
   conv_layers = {}
@@ -168,7 +168,7 @@ for i in range (3):
       if(important_steps[k] == counter):
           print("Pruning...", k+1)
           weight_dict = {item: weight.clone().cpu().detach() for item, weight in simple_model.state_dict().items() if item in prunable_layers} 
-          (mask, num_zeroed) = prune(weight_dict, k+1, .86115, num_zeroed, mask)
+          (mask, num_zeroed) = prune(weight_dict, k+1, .9493, num_zeroed, mask)
   print("Max Accuracy:",max_accuracy)
 
 torch.save(accuracy, "../Allen_UROP/data/resnet18_nf_prune_accuracy.txt")
