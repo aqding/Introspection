@@ -36,7 +36,7 @@ batch = 128
 cifar10_train = datasets.CIFAR10(root = "../Allen_UROP/datasets", train = True, download = True, transform = train_transform)
 cifar10_test = datasets.CIFAR10(root = "../Allen_UROP/datasets", train=False, download = True, transform = valid_transform)
 trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size=batch, shuffle= True )
-testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 10000, shuffle = True)
+testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = 100, shuffle = True)
 
 simple_model = ResNet18()
 simple_model.to(cuda)
@@ -150,13 +150,6 @@ for i in range (3):
       loss.backward()
       testoptimizer.step()
       counter += 1
-      for k in range(len(timesteps)):
-        if(timesteps[k] == counter):
-          x = simple_model.state_dict()
-          new_dict = {}
-          for item in mask:
-            new_dict[item] = x[item].clone().detach()
-          weight_holder[k] = dict_to_vec(new_dict)
     correct = 0
     for name, param in simple_model.named_parameters():
         if(name in mask):
