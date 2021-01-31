@@ -47,7 +47,7 @@ testoptimizer = optim.SGD(simple_model.parameters(), .1)
 testcriterion = nn.NLLLoss()
 
 def dict_to_vec(model_skel):
-  out = torch.tensor([])
+  out = torch.tensor([]).to(cuda)
   for item in model_skel:
     out = torch.cat((out, torch.reshape(model_skel[item], (-1,))))
   return out
@@ -129,7 +129,7 @@ for i in range (3):
       for name, param in simple_model.named_parameters():
         if(name in mask):
           param.data *= mask[name]
-      
+      data = torch.reshape(data, (data.size()[0], 28**2))
       output = simple_model(data)
       loss = testcriterion(output, labels)
       loss.backward()
@@ -148,6 +148,7 @@ for i in range (3):
             param.data *= mask[name]
     for batch_num, (test_data, test_labels) in enumerate(testloader):
       test_data = test_data.to(cuda)
+      test_data = torch.reshape(test_data, (test_data.size()[0], 28**2))
       test_labels = test_labels.to(cuda)
       test_output = simple_model(test_data)
       correct += validate(test_output, test_labels)
@@ -166,7 +167,7 @@ for i in range (3):
           accelerate_dict = vec_to_dict(acceleration, mask)
           # for item in accelerate_dict:
           #   accelerate_dict[item] = accelerate_dict[item].to(cuda)*mask[item]
-          (mask, num_zeroed) = prune(accelerate_dict, k+1, .95, num_zeroed, mask)
+          (mask, num_zeroed) = prune(accelerate_dict, k+1, .97, num_zeroed, mask)
   print("Max Accuracy:",max_accuracy)
 
 torch.save(accuracy, "../Allen_UROP/data/mnist_f_prune_accuracy.txt")
