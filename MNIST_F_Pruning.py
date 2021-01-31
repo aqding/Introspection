@@ -5,7 +5,7 @@ from torch import nn, optim
 import torchvision.transforms as transforms
 
 print("Pruning with Forecasting")
-epochs = 40
+epochs = 160
 batch = 128
 # Steps per epoch: 469
 mnist_train = datasets.MNIST(root = "../Allen_UROP/datasets", train = True, download = True, transform = torchvision.transforms.ToTensor())
