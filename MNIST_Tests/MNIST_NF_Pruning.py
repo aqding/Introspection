@@ -5,13 +5,13 @@ from torch import nn, optim
 import torchvision.transforms as transforms
 
 print("Pruning with Forecasting")
-epochs = 40
+epochs = 160
 batch = 128
 # Steps per epoch: 469
 mnist_train = datasets.MNIST(root = "../Allen_UROP/datasets", train = True, download = True, transform = torchvision.transforms.ToTensor())
 mnist_test = datasets.MNIST(root = "../Allen_UROP/datasets", train = False, download = True, transform = torchvision.transforms.ToTensor())
 trainloader = torch.utils.data.DataLoader(mnist_train, batch_size = batch, shuffle = True)
-testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 10000, shuffle = True)
+testloader = torch.utils.data.DataLoader(mnist_test, batch_size = 100, shuffle = True)
 
 # Unused Model
 
@@ -47,7 +47,7 @@ testoptimizer = optim.SGD(simple_model.parameters(), .1)
 testcriterion = nn.NLLLoss()
 
 def dict_to_vec(model_skel):
-  out = torch.tensor([])
+  out = torch.tensor([]).to(cuda)
   for item in model_skel:
     out = torch.cat((out, torch.reshape(model_skel[item], (-1,))))
   return out
@@ -129,6 +129,7 @@ for i in range (3):
       for name, param in simple_model.named_parameters():
         if(name in mask):
           param.data *= mask[name]
+      data = torch.reshape(data, (data.size()[0], 28**2))
       output = simple_model(data)
       loss = testcriterion(output, labels)
       loss.backward()
@@ -140,6 +141,7 @@ for i in range (3):
             param.data *= mask[name]
     for batch_num, (test_data, test_labels) in enumerate(testloader):
       test_data = test_data.to(cuda)
+      test_data = torch.reshape(test_data, (test_data.size()[0], 28**2))
       test_labels = test_labels.to(cuda)
       test_output = simple_model(test_data)
       correct += validate(test_output, test_labels)
@@ -151,8 +153,8 @@ for i in range (3):
     for k in range(len(important_steps)):
       if(important_steps[k] == counter):
           print("Pruning...", k+1)
-          weight_dict = {item: weight.clone().cpu().detach() for item, weight in simple_model.state_dict().items() if item in prunable_layers} 
-          (mask, num_zeroed) = prune(weight_dict, k+1, .9493, num_zeroed, mask)
+          weight_dict = {item: weight.clone().cpu().detach() for item, weight in simple_model.state_dict().items()} 
+          (mask, num_zeroed) = prune(weight_dict, k+1, .97, num_zeroed, mask)
   print("Max Accuracy:",max_accuracy)
 
 torch.save(accuracy, "../Allen_UROP/data/mnist_nf_prune_accuracy.txt")
