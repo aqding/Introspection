@@ -9,8 +9,8 @@ import torchvision
 import torchvision.datasets as datasets
 from torch import nn, optim
 import torchvision.transforms as transforms
-#from resnet_model import *
-from resnet_method import *
+from resnet_model import *
+#from resnet_method import *
 import torch.backends.cudnn as cudnn
 import numpy
 
@@ -36,7 +36,7 @@ TOTAL_PRUNED = .95
 prune_percent = numpy.roots([-1, 1, 1, -TOTAL_PRUNED])[2]
 
 I_model = torch.load("../Allen_UROP/data/introspection.txt")
-cuda = torch.device("cuda:0")
+cuda = torch.device("cuda:1")
 
 
 # In[ ]:
@@ -44,10 +44,9 @@ cuda = torch.device("cuda:0")
 
 epochs = 80
 batch = 128 #128
-test_batch = 50
+test_batch = 100
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+device = "cuda:1"
 
 # In[ ]:
 
@@ -81,10 +80,10 @@ testloader = torch.utils.data.DataLoader(
 # Steps per epoch (CIFAR): 391
 # simple_model = resnet20() #torchvision.models.resnet18()
 
-simple_model = resnet56() #torch.nn.DataParallel(resnet.__dict__['resnet20']())
+simple_model = ResNet18() #torch.nn.DataParallel(resnet.__dict__['resnet20']())
 
 simple_model = simple_model.to(device)
-if device == 'cuda':
+if device == 'cuda:1':
     simple_model = torch.nn.DataParallel(simple_model)
     cudnn.benchmark = True
     
@@ -93,9 +92,10 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(simple_model.parameters(), lr=0.1,
                       momentum=0.9, weight_decay=5e-4)
 
-#lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,                                                     milestones=[100, 150], last_epoch=- 1)
+#lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
+                                     #                   milestones=[100, 150], last_epoch=- 1)
 
 
 # In[ ]:
@@ -202,23 +202,16 @@ for i in range (3):
   max_accuracy = 0
   print("Pruning Step", i+1)
   for m in range(epochs):
-    #trainloader = torch.utils.data.DataLoader(cifar10_train, batch_size = batch, shuffle = True)
-    iter_train = iter(trainloader)
-    for j in range(50000//batch + 1):
+    for batch_num, (data, labels) in enumerate(trainloader):
       optimizer.zero_grad()
-      data, labels = iter_train.next()
       data = data.to(cuda)
       labels = labels.to(cuda)
+      for name, param in simple_model.named_parameters():
+          if(name in mask):
+              param.data *= mask[name]
       output = simple_model(data)
       loss = criterion(output, labels)
       loss.backward()
-      mask_list_counter = 0
-      for parameter in simple_model.parameters():
-        if(mask_list_counter < len(mask_as_list)):
-          if(parameter.size() == mask_as_list[mask_list_counter].size()):
-              parameter.grad = parameter.grad*mask_as_list[mask_list_counter]
-              mask_list_counter += 1
-      
       optimizer.step()
       
       #state_dict = simple_model.state_dict()
@@ -234,25 +227,8 @@ for i in range (3):
           for item in mask:
             new_dict[item] = x[item]
           weight_holder[k] = dict_to_vec(new_dict)
-      
-      for k in range(len(important_steps)):
-        if(important_steps[k] == counter):
-            print("Pruning...", k+1)
-            acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
-
-            accelerate_dict = vec_to_dict(acceleration, mask)
-            (mask, num_zeroed) = prune(accelerate_dict, k+1, prune_percent, num_zeroed, mask)
-            temp_state_dict = simple_model.state_dict()
-            mask_as_list = []
-            
-            for item in mask:
-                temp_state_dict[item] = mask[item] * temp_state_dict[item].to(cuda)
-                temp_state_dict[item] = temp_state_dict[item].to(cuda)
-                mask_as_list.append(mask[item])
-                
-            simple_model.load_state_dict(temp_state_dict)
-    correct = 0
     #testloader = torch.utils.data.DataLoader(cifar10_test, batch_size = test_batch, shuffle = True)
+    correct = 0
     for batch_num, (test_data, test_labels) in enumerate(testloader):
         test_data = test_data.to(cuda)
         test_labels = test_labels.to(cuda)
@@ -260,13 +236,17 @@ for i in range (3):
         correct += validate(test_output, test_labels)
     training_iterations.append(counter)
     accuracy.append(correct/10000)
-    if(correct/10000 > max_accuracy):
-        max_accuracy = correct/10000
     print("Epoch", m, "acc", correct/10000)
     
     # step scheduler
     lr_scheduler.step()
-  print(max_accuracy)
+    for k in range(len(important_steps)):
+        if(important_steps[k] == counter):
+            print("Pruning", k+1)
+            acceleration = I_model(torch.transpose(weight_holder[4*k:4*k+4, :], 0, 1)*1000)/1000
+            accelerate_dict = vec_to_dict(acceleration, mask)
+            (mask, num_zeroed) = prune(accelerate_dict, k+1, prune_percent, num_zeroed, mask)
+  print("Max Accuracy:", max_accuracy)
 
 
 
